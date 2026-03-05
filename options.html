@@ -84,6 +84,60 @@
             gap: 8px;
             font-weight: 500;
         }
+
+        .sync-indicator {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+
+        .sync-indicator.syncing {
+            color: var(--primary);
+        }
+
+        .sync-indicator.success {
+            color: #10b981;
+        }
+
+        .sync-indicator.error {
+            color: #ef4444;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .sync-dot.syncing {
+            background: var(--primary);
+            animation: pulse 1s infinite;
+        }
+
+        .sync-dot.success {
+            background: #10b981;
+        }
+
+        .sync-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
     </style>
 </head>
 
@@ -96,6 +150,10 @@
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
                 <span>Đã dọn dẹp tự động: <strong id="statsCount" style="color: var(--primary);">0</strong> link</span>
+                <span id="syncIndicator" class="sync-indicator" style="display: none;">
+                    <span id="syncDot" class="sync-dot"></span>
+                    <span id="syncText"></span>
+                </span>
             </div>
             <div class="toolbar-buttons">
                 <input type="file" id="importFile" accept=".json" style="display: none;">
@@ -122,6 +180,9 @@
         <textarea id="domainTextarea" placeholder="google.com&#10;youtube.com&#10;facebook.com"
             spellcheck="false"></textarea>
     </div>
+    <script src="lib/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="sync.js"></script>
     <script src="options.js"></script>
 </body>
 

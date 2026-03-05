@@ -21,7 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Cập nhật vào storage (loại bỏ phần tử trùng lặp)
             const uniqueDomains = [...new Set(domains)];
-            chrome.storage.local.set({ domains: uniqueDomains });
+            chrome.storage.local.set({ domains: uniqueDomains }, () => {
+                // Đồng bộ lên Cloud nếu đã đăng nhập
+                if (typeof syncToCloud === 'function') syncToCloud();
+            });
         }, 500); // Thêm delay nhỏ tránh ghi vào storage quá nhiều lần trên giây
     });
 
@@ -123,4 +126,39 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // -------- ĐỒNG BỘ INDICATOR --------
+    const syncIndicator = document.getElementById('syncIndicator');
+    const syncDot = document.getElementById('syncDot');
+    const syncText = document.getElementById('syncText');
+
+    function updateSyncUI(status, message) {
+        if (!syncIndicator) return;
+        syncIndicator.style.display = 'flex';
+        syncIndicator.className = 'sync-indicator ' + status;
+        syncDot.className = 'sync-dot ' + status;
+        syncText.textContent = message;
+    }
+
+    // Đăng ký callback để nhận thông báo từ sync.js
+    if (typeof onSyncStatus === 'function') {
+        onSyncStatus(updateSyncUI);
+    }
+
+    // Hiển thị trạng thái đồng bộ cuối cùng khi mới mở trang
+    chrome.storage.local.get(['lastSyncStatus', 'lastSyncMessage', 'supabaseSession'], (result) => {
+        if (result.supabaseSession && result.lastSyncStatus) {
+            updateSyncUI(result.lastSyncStatus, result.lastSyncMessage);
+        }
+    });
+
+    // Lắng nghe thay đổi trạng thái đồng bộ trong thời gian thực
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local' && changes.lastSyncStatus) {
+            updateSyncUI(
+                changes.lastSyncStatus.newValue,
+                changes.lastSyncMessage ? changes.lastSyncMessage.newValue : ''
+            );
+        }
+    });
 });

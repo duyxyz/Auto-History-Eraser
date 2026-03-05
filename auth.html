@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập - Auto History Eraser</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 380px;
+            padding: 40px 30px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .auth-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .auth-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .auth-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .auth-input:focus {
+            border-color: var(--primary);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 4px;
+        }
+
+        .auth-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .auth-btn:active {
+            transform: scale(0.98);
+        }
+
+        .auth-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .auth-switch a {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .auth-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .auth-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--bg-color);
+            color: var(--text-muted);
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-title">Auto History Eraser</div>
+        <div class="auth-subtitle">Đăng nhập để đồng bộ danh sách trên các thiết bị</div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tabLogin">Đăng nhập</button>
+            <button class="auth-tab" id="tabRegister">Đăng ký</button>
+        </div>
+
+        <div id="authError" class="auth-error"></div>
+        <div id="authSuccess" class="auth-success"></div>
+
+        <form id="authForm">
+            <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
+            <input type="password" id="passwordInput" class="auth-input" placeholder="Mật khẩu (ít nhất 6 ký tự)"
+                required minlength="6">
+            <button type="submit" id="authBtn" class="auth-btn">Đăng nhập</button>
+        </form>
+
+        <div class="auth-switch">
+            <span id="switchText">Chưa có tài khoản?</span>
+            <a id="switchLink">Đăng ký ngay</a>
+        </div>
+    </div>
+
+    <script src="lib/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+</body>
+
+</html>

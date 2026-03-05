@@ -1,5 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Nút mở trang danh sách
+    // -------- AUTH UI --------
+    const authBar = document.getElementById('authBar');
+    const loginBar = document.getElementById('loginBar');
+    const userEmailSpan = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const syncStatus = document.getElementById('syncStatus');
+
+    // Kiểm tra trạng thái đăng nhập
+    chrome.storage.local.get(['supabaseSession', 'userEmail'], (result) => {
+        if (result.supabaseSession && result.userEmail) {
+            // Đã đăng nhập
+            authBar.style.display = 'flex';
+            loginBar.style.display = 'none';
+            userEmailSpan.textContent = result.userEmail;
+        } else {
+            // Chưa đăng nhập
+            authBar.style.display = 'none';
+            loginBar.style.display = 'flex';
+        }
+    });
+
+    // Nút đăng nhập -> mở trang auth
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: chrome.runtime.getURL('auth.html') });
+        });
+    }
+
+    // Nút đăng xuất
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await chrome.storage.local.remove(['supabaseSession', 'userEmail', 'userId']);
+            authBar.style.display = 'none';
+            loginBar.style.display = 'flex';
+        });
+    }
+
+    // -------- NÚT MỞ TRANG DANH SÁCH --------
     const openOptionsBtn = document.getElementById('openOptionsBtn');
     if (openOptionsBtn) {
         openOptionsBtn.addEventListener('click', () => {
@@ -11,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Detect current tab and update the UI
+    // -------- DETECT CURRENT TAB --------
     const addCurrentContainer = document.getElementById('addCurrentContainer');
     const addCurrentBtn = document.getElementById('addCurrentBtn');
     const currentDomainSpan = document.getElementById('currentDomain');
@@ -43,6 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                     status.className = 'current-site-status';
                                     status.textContent = 'Đã thêm';
                                     addCurrentContainer.appendChild(status);
+
+                                    // Đồng bộ lên Cloud nếu đã đăng nhập
+                                    if (typeof syncToCloud === 'function') {
+                                        syncToCloud();
+                                    }
                                 });
                             });
                         }
@@ -53,6 +96,25 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 // ignore invalid urls
             }
+        }
+    });
+
+    // -------- HIỂN THỊ TRẠNG THÁI ĐỒNG BỘ --------
+    if (typeof onSyncStatus === 'function') {
+        onSyncStatus((status, message) => {
+            syncStatus.textContent = message;
+            syncStatus.style.display = 'block';
+            syncStatus.style.color = status === 'error' ? '#ef4444' : status === 'success' ? '#10b981' : 'var(--primary)';
+        });
+    }
+
+    // Hiển thị trạng thái cuối cùng khi mở popup
+    chrome.storage.local.get(['lastSyncStatus', 'lastSyncMessage', 'supabaseSession'], (result) => {
+        if (result.supabaseSession && result.lastSyncMessage) {
+            syncStatus.textContent = result.lastSyncMessage;
+            syncStatus.style.display = 'block';
+            const s = result.lastSyncStatus;
+            syncStatus.style.color = s === 'error' ? '#ef4444' : s === 'success' ? '#10b981' : 'var(--primary)';
         }
     });
 });

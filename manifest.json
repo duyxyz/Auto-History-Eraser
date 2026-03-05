@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Auto History Eraser",
-  "version": "1.0",
-  "description": "Tự động xóa lịch sử duyệt web dựa trên danh sách tên miền khi bạn đóng tab.",
+  "version": "1.1",
+  "description": "Tự động xóa lịch sử duyệt web dựa trên danh sách tên miền. Hỗ trợ đồng bộ Cloud.",
   "permissions": [
     "history",
     "storage",
     "tabs"
+  ],
+  "host_permissions": [
+    "https://kdmokuvhcbwnhhrhynwg.supabase.co/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -15,5 +18,8 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Auto Wipe"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://kdmokuvhcbwnhhrhynwg.supabase.co"
   }
 }

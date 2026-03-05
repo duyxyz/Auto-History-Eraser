@@ -1,50 +1,89 @@
-// File này tự động xóa URL khỏi lịch sử ngay lập tức khi phát hiện tab tải xong 1 trang nằm trong black list.
+// Auto History Eraser - Background Service Worker
+// Sử dụng chrome.history.onVisited để bắt chính xác thời điểm Chrome ghi lịch sử mới.
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    // Chỉ xử lý nếu URL thay đổi hoặc trang tải xong
-    if (changeInfo.url || changeInfo.status === 'complete') {
-        try {
-            const url = changeInfo.url || tab.url;
-            if (!url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:')) return;
+// Cooldown để tránh quét lặp cùng 1 domain liên tục
+const recentSweeps = {};
+const SWEEP_COOLDOWN = 5000; // 5 giây
 
-            const urlObj = new URL(url);
+// ======== CORE: Lắng nghe sự kiện Chrome ghi lịch sử ========
+chrome.history.onVisited.addListener(async (historyItem) => {
+    try {
+        const url = historyItem.url;
+        if (!url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:')) return;
 
-            // Lấy danh sách domains do người dùng lưu
-            const { domains = [] } = await chrome.storage.local.get(['domains']);
+        const urlObj = new URL(url);
+        const { domains = [] } = await chrome.storage.local.get(['domains']);
 
-            // Kiểm tra xem tên miền của đường dẫn này có khớp danh sách ẩn hay không
-            const isMatch = domains.some(d => urlObj.hostname.includes(d));
+        // Tìm domain nào trong blacklist khớp
+        const matchedDomain = domains.find(d => urlObj.hostname.includes(d));
 
-            if (isMatch) {
-                // Xóa URL này khỏi lịch sử duyệt web liền ngay lập tức
-                chrome.history.deleteUrl({ url: url });
+        if (matchedDomain) {
+            // 1. Xóa ngay URL vừa được ghi vào lịch sử
+            await chrome.history.deleteUrl({ url: url });
 
-                // Trình duyệt có thể có độ trễ khi ghi lịch sử vào database cục bộ (nhất là máy tính yếu)
-                // Nên chúng ta đặt lịch xóa thêm 1 lần nữa sau 1.5 giây để quét dọn triệt để
-                setTimeout(() => {
-                    chrome.history.deleteUrl({ url: url });
-                }, 1500);
-
-                // Tăng biến đếm thống kê số lượng link đã bị dọn dẹp
-                chrome.storage.local.get(['deletionCount'], (result) => {
-                    let count = result.deletionCount || 0;
-                    chrome.storage.local.set({ deletionCount: count + 1 });
-                });
+            // 2. Sweep toàn bộ domain (có cooldown)
+            const now = Date.now();
+            if (!recentSweeps[matchedDomain] || (now - recentSweeps[matchedDomain]) >= SWEEP_COOLDOWN) {
+                recentSweeps[matchedDomain] = now;
+                await sweepDomain(matchedDomain);
             }
-        } catch (e) {
-            // Không xử lý những URL lỗi, about:blank v.v...
         }
+    } catch (e) {
+        // Bỏ qua URL lỗi parse
     }
 });
 
-// Dọn dẹp cache rác (nếu bạn từng dùng phiên bản cũ của tool này, script này sẽ dọn dẹp biến thừa)
+// ======== SWEEP: Quét toàn bộ lịch sử của 1 domain ========
+async function sweepDomain(domain) {
+    try {
+        const results = await chrome.history.search({
+            text: domain,
+            startTime: 0,
+            maxResults: 10000
+        });
+
+        let deletedCount = 0;
+        for (const item of results) {
+            try {
+                const itemHost = new URL(item.url).hostname;
+                if (itemHost.includes(domain)) {
+                    await chrome.history.deleteUrl({ url: item.url });
+                    deletedCount++;
+                }
+            } catch (e) {
+                // Bỏ qua URL lỗi
+            }
+        }
+
+        // Cập nhật bộ đếm thống kê
+        if (deletedCount > 0) {
+            const { deletionCount = 0 } = await chrome.storage.local.get(['deletionCount']);
+            await chrome.storage.local.set({ deletionCount: deletionCount + deletedCount });
+        }
+
+        return deletedCount;
+    } catch (e) {
+        console.error('Sweep error:', e);
+        return 0;
+    }
+}
+
+// ======== STARTUP: Quét sạch khi mở trình duyệt ========
 chrome.runtime.onStartup.addListener(async () => {
     try {
+        // Dọn rác storage cũ
         const allData = await chrome.storage.local.get(null);
         const keysToRemove = Object.keys(allData).filter(k => k.startsWith('tab_'));
         if (keysToRemove.length > 0) {
             await chrome.storage.local.remove(keysToRemove);
         }
+
+        // Quét sạch lịch sử tồn đọng cho tất cả domain trong blacklist
+        const { domains = [] } = await chrome.storage.local.get(['domains']);
+        for (const domain of domains) {
+            await sweepDomain(domain);
+        }
     } catch (e) {
+        console.error('Startup sweep error:', e);
     }
 });
