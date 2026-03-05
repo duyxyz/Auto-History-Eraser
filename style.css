@@ -1,0 +1,155 @@
+/* style.css */
+:root {
+  --bg-color: #ffffff;
+  --card-bg: #f1f3f4;
+  --primary: #1a73e8;
+  /* Chrome Blue */
+  --primary-hover: #1b66c9;
+  --text-main: #202124;
+  --text-muted: #5f6368;
+  --border: #dadce0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #000000;
+    --card-bg: #000000;
+    --primary: #8ab4f8;
+    /* Chrome Blue Dark */
+    --primary-hover: #aecbfa;
+    --text-main: #e8eaed;
+    --text-muted: #9aa0a6;
+    --border: #333333;
+  }
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 320px;
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+
+.container {
+  padding: 20px;
+}
+
+p.desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 0;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+button.add-btn {
+  padding: 10px 16px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+}
+
+button.add-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.current-site-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.current-domain-text {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-main);
+  /* Truncate text if too long */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+}
+
+.icon-add-btn {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.icon-add-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.icon-add-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-add-btn:disabled {
+  background-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Success status text styling */
+.current-site-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+button.list-btn {
+  background-color: var(--card-bg);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  width: 100%;
+}
+
+button.list-btn:hover {
+  background-color: var(--border);
+}
+
+.list-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-main);
+}
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  outline: none;
+  resize: vertical;
+  min-height: 160px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  transition: border-color 0.2s;
+  line-height: 1.6;
+}
+
+textarea:focus {
+  border-color: var(--primary);
+}

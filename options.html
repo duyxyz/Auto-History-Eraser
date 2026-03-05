@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý danh sách - Auto History Eraser</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Styling riêng cho trang options rộng hơn */
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-color);
+            overflow: hidden;
+            /* Ngăn scroll bar của body */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .options-wrapper {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            width: 100%;
+            flex: 1;
+            box-sizing: border-box;
+            border: none;
+            border-radius: 0;
+            resize: none;
+            font-size: 16px;
+            padding: 20px;
+        }
+
+        textarea:focus {
+            border: none;
+            outline: none;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toolbar-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .tool-btn:hover {
+            background-color: var(--border);
+        }
+
+        .stats-banner {
+            color: var(--text-main);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="options-wrapper">
+        <div class="toolbar">
+            <div class="stats-banner">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--primary)" stroke-width="2" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span>Đã dọn dẹp tự động: <strong id="statsCount" style="color: var(--primary);">0</strong> link</span>
+            </div>
+            <div class="toolbar-buttons">
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+                <button id="importBtn" class="tool-btn" title="Nhập danh sách">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Nhập File
+                </button>
+                <button id="exportBtn" class="tool-btn" title="Xuất danh sách">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Xuất JSON
+                </button>
+            </div>
+        </div>
+        <textarea id="domainTextarea" placeholder="google.com&#10;youtube.com&#10;facebook.com"
+            spellcheck="false"></textarea>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Auto History Eraser",
+  "version": "1.0",
+  "description": "Tự động xóa lịch sử duyệt web dựa trên danh sách tên miền khi bạn đóng tab.",
+  "permissions": [
+    "history",
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Auto Wipe"
+  }
+}
