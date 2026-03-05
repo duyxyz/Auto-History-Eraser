@@ -81,20 +81,23 @@ button.add-btn:hover {
 }
 
 .icon-add-btn {
-  background-color: var(--primary);
-  color: white;
-  border: none;
+  background-color: rgba(156, 163, 175, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--text-main);
+  border: 1px solid rgba(156, 163, 175, 0.3);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s, transform 0.1s, border-color 0.2s;
 }
 
 .icon-add-btn:hover {
-  background-color: var(--primary-hover);
+  background-color: rgba(156, 163, 175, 0.35);
+  border-color: rgba(156, 163, 175, 0.5);
 }
 
 .icon-add-btn:active {
