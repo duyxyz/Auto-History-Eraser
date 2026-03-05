@@ -1,10 +1,72 @@
 document.addEventListener('DOMContentLoaded', () => {
     const domainTextarea = document.getElementById('domainTextarea');
 
-    // Load danh sách đã lưu từ trước và ghi vào textarea
-    chrome.storage.local.get(['domains'], (result) => {
-        const domains = result.domains || [];
-        domainTextarea.value = domains.join('\n');
+    // Hàm load danh sách vào textarea
+    function loadDomains() {
+        chrome.storage.local.get(['domains'], (result) => {
+            const domains = result.domains || [];
+            domainTextarea.value = domains.join('\n');
+        });
+    }
+
+    // Load danh sách đã lưu từ trước
+    loadDomains();
+
+    // Đồng bộ từ cloud khi mở trang + bật Realtime (nếu đã đăng nhập)
+    chrome.storage.local.get(['supabaseSession', 'userId'], (result) => {
+        if (result.supabaseSession && typeof syncFromCloudBackground === 'function') {
+            syncFromCloudBackground().then(() => {
+                loadDomains();
+            });
+        }
+
+        // ======== SUPABASE REALTIME ========
+        // Khi trang Options đang mở → lắng nghe thay đổi trực tiếp từ Cloud
+        if (result.supabaseSession && result.userId && typeof getSupabaseClient === 'function') {
+            const sb = getSupabaseClient();
+            if (sb) {
+                const channel = sb.channel('user-domains-changes')
+                    .on('postgres_changes',
+                        {
+                            event: '*',          // INSERT, UPDATE, DELETE
+                            schema: 'public',
+                            table: 'user_domains',
+                            filter: `user_id=eq.${result.userId}`
+                        },
+                        (payload) => {
+                            // Nhận được thay đổi realtime từ cloud!
+                            if (payload.new && payload.new.domains) {
+                                const cloudDomains = payload.new.domains;
+
+                                // Gộp với local
+                                chrome.storage.local.get(['domains'], (localResult) => {
+                                    const localDomains = localResult.domains || [];
+                                    const merged = [...new Set([...localDomains, ...cloudDomains])];
+
+                                    chrome.storage.local.set({ domains: merged }, () => {
+                                        // Chỉ refresh textarea nếu user KHÔNG đang gõ
+                                        if (document.activeElement !== domainTextarea) {
+                                            domainTextarea.value = merged.join('\n');
+                                        }
+
+                                        // Cập nhật sync indicator
+                                        const time = new Date().toLocaleTimeString('vi-VN');
+                                        if (typeof updateSyncUI === 'function') {
+                                            updateSyncUI('success', `Realtime: cập nhật lúc ${time} ⚡`);
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    )
+                    .subscribe();
+
+                // Dọn dẹp khi đóng trang
+                window.addEventListener('beforeunload', () => {
+                    sb.removeChannel(channel);
+                });
+            }
+        }
     });
 
     // Auto-save khi người dùng gõ vào textarea

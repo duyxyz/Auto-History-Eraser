@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
             authBar.style.display = 'flex';
             loginBar.style.display = 'none';
             userEmailSpan.textContent = result.userEmail;
+
+            // Đồng bộ ngay khi mở popup
+            if (typeof syncFromCloudBackground === 'function') {
+                syncFromCloudBackground().then(() => {
+                    if (typeof syncToCloud === 'function') syncToCloud();
+                });
+            }
         } else {
             // Chưa đăng nhập
             authBar.style.display = 'none';
