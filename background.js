@@ -1,112 +1,65 @@
-// Auto History Eraser - Background Service Worker
-// Sử dụng chrome.history.onVisited để bắt chính xác thời điểm Chrome ghi lịch sử mới.
-
-// Cooldown để tránh quét lặp cùng 1 domain liên tục
-const recentSweeps = {};
-const SWEEP_COOLDOWN = 5000; // 5 giây
+// Auto History Eraser → Website Blocker - Background Service Worker
+// Chặn truy cập các trang web có trong danh sách đen
 
 // ======== HÀM KIỂM TRA DOMAIN CHÍNH XÁC ========
-// Chỉ match khi hostname KẾT THÚC bằng domain trong blacklist
-// Ví dụ: blacklist có "facebook.com"
-//   ✅ facebook.com        → match
-//   ✅ m.facebook.com      → match
-//   ✅ www.facebook.com    → match
-//   ❌ notfacebook.com     → KHÔNG match
-//   ❌ fakefacebook.com    → KHÔNG match
 function isDomainMatch(hostname, blacklistDomain) {
-    // Chuẩn hóa: bỏ www phía trước
-    hostname = hostname.replace(/^www\./, '').toLowerCase();
-    blacklistDomain = blacklistDomain.replace(/^www\./, '').toLowerCase();
+    // Bỏ qua domain rỗng hoặc quá ngắn
+    if (!blacklistDomain || blacklistDomain.trim().length < 2) return false;
 
-    // Kiểm tra chính xác: hostname phải bằng hoặc kết thúc bằng ".domain"
+    hostname = hostname.replace(/^www\./, '').toLowerCase().trim();
+    blacklistDomain = blacklistDomain.replace(/^www\./, '').toLowerCase().trim();
+
+    // Phải chứa ít nhất 1 dấu chấm (ví dụ: "facebook.com", không phải chỉ "facebook")
+    // Hoặc phải khớp chính xác hostname
     return hostname === blacklistDomain || hostname.endsWith('.' + blacklistDomain);
 }
 
-// ======== CORE: Lắng nghe sự kiện Chrome ghi lịch sử ========
-chrome.history.onVisited.addListener(async (historyItem) => {
+// ======== CORE: Chặn truy cập khi tab mở trang nằm trong danh sách ========
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    // Chỉ xử lý khi URL thay đổi
+    if (!changeInfo.url) return;
+
     try {
-        const url = historyItem.url;
-        if (!url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:')) return;
+        const url = changeInfo.url;
+        if (!url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:') || url.startsWith('chrome-extension://')) return;
 
         const urlObj = new URL(url);
         const { domains = [] } = await chrome.storage.local.get(['domains']);
 
-        // Tìm domain nào trong blacklist khớp CHÍNH XÁC
-        const matchedDomain = domains.find(d => isDomainMatch(urlObj.hostname, d));
+        // Lọc bỏ domain rỗng / không hợp lệ
+        const validDomains = domains.filter(d => d && d.trim().length >= 2);
+
+        // Tìm domain nào trong blacklist khớp
+        const matchedDomain = validDomains.find(d => isDomainMatch(urlObj.hostname, d));
 
         if (matchedDomain) {
-            // 1. Xóa ngay URL vừa được ghi vào lịch sử
-            await chrome.history.deleteUrl({ url: url });
+            console.log(`[Blocker] Chặn: ${urlObj.hostname} (match: ${matchedDomain})`);
+            // Redirect sang trang blocked
+            const blockedUrl = chrome.runtime.getURL('blocked.html') + '?domain=' + encodeURIComponent(matchedDomain);
+            chrome.tabs.update(tabId, { url: blockedUrl });
 
-            // 2. Sweep toàn bộ domain (có cooldown)
-            const now = Date.now();
-            if (!recentSweeps[matchedDomain] || (now - recentSweeps[matchedDomain]) >= SWEEP_COOLDOWN) {
-                recentSweeps[matchedDomain] = now;
-                await sweepDomain(matchedDomain);
-            }
+            // Tăng bộ đếm thống kê
+            const { blockCount = 0 } = await chrome.storage.local.get(['blockCount']);
+            await chrome.storage.local.set({ blockCount: blockCount + 1 });
         }
     } catch (e) {
         // Bỏ qua URL lỗi parse
     }
 });
 
-// ======== SWEEP: Quét toàn bộ lịch sử của 1 domain ========
-async function sweepDomain(domain) {
-    try {
-        // Tìm bằng domain để thu hẹp kết quả
-        const results = await chrome.history.search({
-            text: domain,
-            startTime: 0,
-            maxResults: 10000
-        });
-
-        let deletedCount = 0;
-        for (const item of results) {
-            try {
-                const itemHost = new URL(item.url).hostname;
-                // CHỈ xóa nếu hostname match CHÍNH XÁC
-                if (isDomainMatch(itemHost, domain)) {
-                    await chrome.history.deleteUrl({ url: item.url });
-                    deletedCount++;
-                }
-            } catch (e) {
-                // Bỏ qua URL lỗi
-            }
-        }
-
-        // Cập nhật bộ đếm thống kê
-        if (deletedCount > 0) {
-            const { deletionCount = 0 } = await chrome.storage.local.get(['deletionCount']);
-            await chrome.storage.local.set({ deletionCount: deletionCount + deletedCount });
-        }
-
-        return deletedCount;
-    } catch (e) {
-        console.error('Sweep error:', e);
-        return 0;
-    }
-}
-
-// ======== STARTUP: Quét sạch khi mở trình duyệt ========
+// ======== STARTUP: Dọn rác storage cũ ========
 chrome.runtime.onStartup.addListener(async () => {
     try {
-        // Dọn rác storage cũ
         const allData = await chrome.storage.local.get(null);
         const keysToRemove = Object.keys(allData).filter(k => k.startsWith('tab_'));
         if (keysToRemove.length > 0) {
             await chrome.storage.local.remove(keysToRemove);
         }
 
-        // Quét sạch lịch sử tồn đọng cho tất cả domain trong blacklist
-        const { domains = [] } = await chrome.storage.local.get(['domains']);
-        for (const domain of domains) {
-            await sweepDomain(domain);
-        }
-
         // Đồng bộ cloud ngay khi mở trình duyệt
         await backgroundSync();
     } catch (e) {
-        console.error('Startup sweep error:', e);
+        console.error('Startup error:', e);
     }
 });
 
@@ -118,7 +71,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 async function backgroundSync() {
     try {
         const result = await chrome.storage.local.get(['supabaseSession', 'userId', 'domains']);
-        if (!result.supabaseSession || !result.userId) return; // Chưa đăng nhập
+        if (!result.supabaseSession || !result.userId) return;
 
         const token = result.supabaseSession.access_token;
         const userId = result.userId;
@@ -168,13 +121,11 @@ async function backgroundSync() {
             });
 
             if (hasCloudData) {
-                // Update
                 await fetch(
                     `${SUPABASE_URL}/rest/v1/user_domains?user_id=eq.${userId}`,
                     { method: 'PATCH', headers, body }
                 );
             } else {
-                // Insert
                 await fetch(
                     `${SUPABASE_URL}/rest/v1/user_domains`,
                     { method: 'POST', headers, body }
@@ -182,7 +133,6 @@ async function backgroundSync() {
             }
         }
 
-        // Lưu thời gian đồng bộ cuối
         const time = new Date().toLocaleTimeString('vi-VN');
         await chrome.storage.local.set({
             lastSyncStatus: 'success',

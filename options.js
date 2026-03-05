@@ -12,62 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load danh sách đã lưu từ trước
     loadDomains();
 
-    // Đồng bộ từ cloud khi mở trang + bật Realtime (nếu đã đăng nhập)
-    chrome.storage.local.get(['supabaseSession', 'userId'], (result) => {
-        if (result.supabaseSession && typeof syncFromCloudBackground === 'function') {
-            syncFromCloudBackground().then(() => {
-                loadDomains();
-            });
-        }
 
-        // ======== SUPABASE REALTIME ========
-        // Khi trang Options đang mở → lắng nghe thay đổi trực tiếp từ Cloud
-        if (result.supabaseSession && result.userId && typeof getSupabaseClient === 'function') {
-            const sb = getSupabaseClient();
-            if (sb) {
-                const channel = sb.channel('user-domains-changes')
-                    .on('postgres_changes',
-                        {
-                            event: '*',          // INSERT, UPDATE, DELETE
-                            schema: 'public',
-                            table: 'user_domains',
-                            filter: `user_id=eq.${result.userId}`
-                        },
-                        (payload) => {
-                            // Nhận được thay đổi realtime từ cloud!
-                            if (payload.new && payload.new.domains) {
-                                const cloudDomains = payload.new.domains;
-
-                                // Gộp với local
-                                chrome.storage.local.get(['domains'], (localResult) => {
-                                    const localDomains = localResult.domains || [];
-                                    const merged = [...new Set([...localDomains, ...cloudDomains])];
-
-                                    chrome.storage.local.set({ domains: merged }, () => {
-                                        // Chỉ refresh textarea nếu user KHÔNG đang gõ
-                                        if (document.activeElement !== domainTextarea) {
-                                            domainTextarea.value = merged.join('\n');
-                                        }
-
-                                        // Cập nhật sync indicator
-                                        const time = new Date().toLocaleTimeString('vi-VN');
-                                        if (typeof updateSyncUI === 'function') {
-                                            updateSyncUI('success', `Realtime: cập nhật lúc ${time} ⚡`);
-                                        }
-                                    });
-                                });
-                            }
-                        }
-                    )
-                    .subscribe();
-
-                // Dọn dẹp khi đóng trang
-                window.addEventListener('beforeunload', () => {
-                    sb.removeChannel(channel);
-                });
-            }
-        }
-    });
 
     // Auto-save khi người dùng gõ vào textarea
     let timer;
@@ -177,14 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const statsCount = document.getElementById('statsCount');
     if (statsCount) {
         // Load số đếm lúc mới mở trang
-        chrome.storage.local.get(['deletionCount'], (result) => {
-            statsCount.textContent = (result.deletionCount || 0).toLocaleString('vi-VN');
+        chrome.storage.local.get(['blockCount'], (result) => {
+            statsCount.textContent = (result.blockCount || 0).toLocaleString('vi-VN');
         });
 
-        // Cập nhật số đếm theo thời gian thực nếu trình duyệt xóa link ngầm phía sau
+        // Cập nhật số đếm theo thời gian thực
         chrome.storage.onChanged.addListener((changes, namespace) => {
-            if (namespace === 'local' && changes.deletionCount) {
-                statsCount.textContent = (changes.deletionCount.newValue || 0).toLocaleString('vi-VN');
+            if (namespace === 'local' && changes.blockCount) {
+                statsCount.textContent = (changes.blockCount.newValue || 0).toLocaleString('vi-VN');
             }
         });
     }

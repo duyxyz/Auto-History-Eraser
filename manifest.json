@@ -1,10 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Auto History Eraser",
-  "version": "1.1",
-  "description": "Tự động xóa lịch sử duyệt web dựa trên danh sách tên miền. Hỗ trợ đồng bộ Cloud.",
+  "version": "2.0",
+  "description": "Chặn truy cập các trang web theo danh sách. Hỗ trợ đồng bộ Cloud.",
   "permissions": [
-    "history",
     "storage",
     "tabs"
   ],
